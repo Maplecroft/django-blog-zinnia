@@ -1,18 +1,29 @@
 """Author model for Zinnia"""
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils.encoding import python_2_unicode_compatible
 
 from zinnia.managers import entries_published
 from zinnia.managers import EntryRelatedPublishedManager
 
 
-class Author(get_user_model()):
+class AuthorPublishedManager(models.Model):
+    """
+    Proxy model manager to avoid overriding of
+    the default User's manager and issue #307.
+    """
+    published = EntryRelatedPublishedManager()
+
+    class Meta:
+        abstract = True
+
+
+@python_2_unicode_compatible
+class Author(get_user_model(),
+             AuthorPublishedManager):
     """
     Proxy model around :class:`django.contrib.auth.models.get_user_model`.
     """
-
-    objects = get_user_model()._default_manager
-    published = EntryRelatedPublishedManager()
 
     def entries_published(self):
         """
@@ -25,9 +36,9 @@ class Author(get_user_model()):
         """
         Builds and returns the author's URL based on his username.
         """
-        return ('zinnia_author_detail', [self.get_username()])
+        return ('zinnia:author_detail', [self.get_username()])
 
-    def __unicode__(self):
+    def __str__(self):
         """
         If the user has a full name, use it instead of the username.
         """
@@ -37,5 +48,4 @@ class Author(get_user_model()):
         """
         Author's meta informations.
         """
-        app_label = 'zinnia'
         proxy = True
